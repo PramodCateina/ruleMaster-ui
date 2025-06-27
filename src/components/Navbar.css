@@ -1,0 +1,119 @@
+/* Navbar container */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 28px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+/* Brand / Left title */
+.navbar-left {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #2c3e50;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.navbar-left:hover {
+  color: #007bff;
+}
+
+/* Right side with dropdown */
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+}
+
+/* Button & Dropdown base style */
+.nav-btn,
+.dropdown-toggle,
+.dropdown-item {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease-in-out;
+}
+
+/* Primary action button */
+.nav-btn,
+.dropdown-toggle {
+  background-color: #007bff;
+  color: #fff;
+}
+
+.nav-btn:hover,
+.dropdown-toggle:hover {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+}
+
+/* Dropdown container */
+.dropdown {
+  position: relative;
+}
+
+/* Dropdown menu */
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 110%;
+  right: 0;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+  padding: 12px;
+  min-width: 200px;
+  z-index: 999;
+  animation: fadeSlideIn 0.3s ease forwards;
+}
+
+.dropdown:hover .dropdown-menu {
+  display: block;
+}
+
+/* Dropdown email */
+.dropdown-email {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+  font-size: 0.95rem;
+}
+
+/* Dropdown item buttons */
+.dropdown-item {
+  background-color: transparent;
+  color: #007bff;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 6px;
+}
+
+.dropdown-item:hover {
+  background-color: #f5f9ff;
+  color: #0056b3;
+}
+
+/* Animation */
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
