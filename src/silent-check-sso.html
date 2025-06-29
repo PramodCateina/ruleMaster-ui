@@ -1,3 +1,12 @@
-<script>
-  parent.postMessage(location.href, location.origin);
-</script>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Silent Check SSO</title>
+</head>
+<body>
+    <script>
+        // This script is required for Keycloak's silent check to work
+        parent.postMessage(location.href, location.origin);
+    </script>
+</body>
+</html>

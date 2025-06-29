@@ -23,6 +23,36 @@ const App = ({ keycloak }: { keycloak: any }) => {
     }
   }, [keycloak, location.pathname]);
 
+  // Effect to handle localStorage when user is logged in
+  useEffect(() => {
+    if (isLoggedIn && keycloak.tokenParsed) {
+      // Set user ID to localStorage
+
+      console.log("keycloak.tokenParsed.sub",keycloak.tokenParsed);
+      
+      const userId = keycloak.tokenParsed.sub || keycloak.tokenParsed.preferred_username;
+      localStorage.setItem('userId', userId);
+       const roles = keycloak.tokenParsed?.aud;
+      const platformRoles = roles?.filter(role => (role !== 'offline_access') && (role !== 'default-roles-global-smart') && (role !== 'uma_authorization'));
+      let profile ={
+        "first_name":keycloak.tokenParsed.given_name,
+        "last_name":keycloak.tokenParsed.family_name,
+        "email":keycloak.tokenParsed.email,
+        "userId" :keycloak.tokenParsed.sub,
+        "role":platformRoles?.toString()
+      }
+       localStorage.setItem('userProfile', JSON.stringify(profile));
+      
+      // Set username to localStorage
+      if (keycloak.tokenParsed.preferred_username) {
+        localStorage.setItem('username', keycloak.tokenParsed.preferred_username);
+      }
+      
+      // If you have subscription details available, set them here
+      // localStorage.setItem('subscriptionId', subscriptionDetails.subscription_id);
+    }
+  }, [isLoggedIn, keycloak.tokenParsed]);
+
   return (
     <div>
       <nav className="navbar">
@@ -30,13 +60,16 @@ const App = ({ keycloak }: { keycloak: any }) => {
         <div className="navbar-right">
           {isLoggedIn ? (
             <>
-              <button className="nav-button" onClick={() => navigate('/realmcreation')}>
-                Tenant creation
-              </button>
               <span className="username">
                 {keycloak.tokenParsed?.preferred_username}
               </span>
-              <button className="nav-button" onClick={() => keycloak.logout()}>
+              <button className="nav-button" onClick={() => {
+                // Clear localStorage on logout
+                localStorage.removeItem('userId');
+                localStorage.removeItem('username');
+                localStorage.removeItem('subscriptionId');
+                keycloak.logout();
+              }}>
                 Logout
               </button>
             </>
