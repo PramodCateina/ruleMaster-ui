@@ -140,12 +140,65 @@ const UserRegistrationDialog = ({ isOpen, onClose, onRegisterUser }) => {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
-  const [group, setGroup] = useState(''); // Default group or fetch from options
+  const [group, setGroups] = useState(''); // Default group or fetch from options
   const [role, setRole] = useState('');   // Default role or fetch from options
   const [errors, setErrors] = useState({});
   // Mock options for Group and Role (in a real app, these would come from API)
   const groupOptions = ['Admin', 'Users', 'Support', 'Developers'];
   const roleOptions = ['Administrator', 'Manager', 'User', 'Viewer'];
+   const [selectedTenantId, setSelectedTenantId] = useState('');
+    const [tenants, setTenants] = useState<Tenant[]>([]);
+   const [loading, setLoading] = useState(false);
+     const admin_id = localStorage.getItem("userId")
+  const fetchTenants = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`http://localhost:4002/api/realm/getRealm/${admin_id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          // Add authorization header if needed
+          // 'Authorization': `Bearer ${token}`
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setTenants(data.data);
+    } catch (error) {
+      console.error('Error fetching tenants:', error);
+      setErrors(prev => ({ ...prev, tenants: 'Failed to load tenants' }));
+    } finally {
+      setLoading(false);
+    }
+  };
+  const fetchGroups = async () => {
+    try {
+      setLoading(prev => ({ ...prev, groups: true }));
+      const response = await fetch(`http://localhost:4002/api/groups/getGroups/${admin_id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          // Add authorization header if needed
+          // 'Authorization': `Bearer ${token}`
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+
+            console.log("dadadadada",data.data);
+
+      setGroups(data.data);
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+      setErrors(prev => ({ ...prev, groups: 'Failed to load groups' }));
+    } finally {
+      setLoading(prev => ({ ...prev, groups: false }));
+    }
+  };
   // Reset form fields and errors when dialog opens
   useEffect(() => {
     if (isOpen) {
@@ -153,9 +206,10 @@ const UserRegistrationDialog = ({ isOpen, onClose, onRegisterUser }) => {
       setLastName('');
       setEmail('');
       setMobile('');
-      setGroup('');
+      setGroups('');
       setRole('');
       setErrors({});
+      fetchTenants()
     }
   }, [isOpen]);
   const validate = () => {
@@ -229,6 +283,18 @@ const UserRegistrationDialog = ({ isOpen, onClose, onRegisterUser }) => {
                 {errors.lastName && <p className="error-message">{errors.lastName}</p>}
               </div>
               <div className="form-group">
+                <label htmlFor="regMobile" className="form-label">Mobile</label>
+                <input
+                  type="tel"
+                  id="regMobile"
+                  className={`form-input ${errors.mobile ? 'error' : ''}`}
+                  value={mobile}
+                  onChange={(e) => setMobile(e.target.value)}
+                  placeholder="Enter mobile number"
+                />
+                {errors.mobile && <p className="error-message">{errors.mobile}</p>}
+              </div>
+              <div className="form-group">
                 <label htmlFor="regEmail" className="form-label">Email</label>
                 <input
                   type="email"
@@ -252,6 +318,28 @@ const UserRegistrationDialog = ({ isOpen, onClose, onRegisterUser }) => {
                 />
                 {errors.mobile && <p className="error-message">{errors.mobile}</p>}
               </div>
+               <div className="form-group">
+              <label htmlFor="groupTenant" className="form-label">Organisation</label>
+              <select
+                id="groupTenant"
+                className={`form-input ${errors.selectedTenantId ? 'error' : ''}`}
+                value={selectedTenantId}
+                onChange={(e) => setSelectedTenantId(e.target.value)}
+                disabled={loading}
+              >
+                <option value="">
+                  {loading ? 'Loading tenants...' : 'Select a organisation'}
+                </option>
+                {tenants.map(tenant => (
+                  <option key={tenant.id} value={tenant.id}>
+                    {tenant.name}
+                  </option>
+                ))}
+              </select>
+              {errors.selectedTenantId && <p className="error-message">{errors.selectedTenantId}</p>}
+              {errors.tenants && <p className="error-message">{errors.tenants}</p>}
+            </div>
+            
               <div className="form-group">
                 <label htmlFor="regRole" className="form-label">Role</label>
                 <select
@@ -271,7 +359,7 @@ const UserRegistrationDialog = ({ isOpen, onClose, onRegisterUser }) => {
                   id="regGroup"
                   className={`form-input ${errors.group ? 'error' : ''}`}
                   value={group}
-                  onChange={(e) => setGroup(e.target.value)}
+                  onChange={(e) => setGroups(e.target.value)}
                 >
                   <option value="">Select a group</option>
                   {groupOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -506,6 +594,8 @@ const RoleDialog = ({ isOpen, onClose, onSaveRole }) => {
       onClose();
     }
   };
+  console.log("selectedTenantIdselectedTenantId",selectedTenantId);
+  
   const isAnyLoading = loading.groups || loading.tenants;
   if (!isOpen) return null;
   return (
@@ -568,7 +658,7 @@ const RoleDialog = ({ isOpen, onClose, onSaveRole }) => {
                   {loading.groups ? 'Loading groups...' : !selectedTenantId ? 'Select an organisation first' : 'Select a group'}
                 </option>
                 {groups
-                  .filter(group => group.id === parseInt(selectedTenantId))
+                  .filter(group => group?.tenant_id === selectedTenantId)
                   .map(group => (
                     <option key={group.id} value={group.id}>
                       {group.group_name}
