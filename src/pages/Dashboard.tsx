@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import ChatbotScreen from './chatbot.tsx'
-
+import ChatbotDashboard from './chatbot.tsx'
+import { useNavigate } from 'react-router-dom';
 // Mock data and interfaces
 const mockKeycloak = {
   token: 'mock-token',
@@ -8,47 +8,40 @@ const mockKeycloak = {
     given_name: 'John'
   }
 };
-
 interface Tenant {
-  realmId: string;
+  id: number;
   name: string;
-  createdAt: string;
+  created_at: string;
 }
-
 interface User {
-  userId: string;
-  firstName: string;
-  lastName: string;
+  id: string;
+  first_name: string;
+  last_name: string;
   email: string;
-  mobile: string;
-  group: string;
+  group_id: string;
   role: string;
-  createdAt: string;
+  created_at: string;
 }
-
 interface Group {
   id: number;
-  name: string;
+  group_name: string;
   description: string;
   tenantId: number; // Added tenantId to Group interface
-  createdAt: string;
+  created_at: string;
 }
-
 interface Role {
   id: number;
-  name: string;
+  role_name: string;
   description: string;
   groupId: number; // Added groupId to Role interface
   tenantId: number; // Added tenantId to Role interface
-  createdAt: string;
+  created_at: string;
 }
-
 interface NavItem {
   id: string;
   label: string;
   icon: string;
 }
-
 // Mock ChatbotScreen Component (remains the same)
 // const ChatbotScreen = () => (
 //   <div className="content-card">
@@ -61,7 +54,6 @@ interface NavItem {
 //     </div>
 //   </div>
 // );
-
 // Generic Input Dialog Component (for single-field inputs like Tenant)
 const InputDialog = ({
   isOpen,
@@ -73,7 +65,6 @@ const InputDialog = ({
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [error, setError] = useState('');
-
   // Reset input and error when dialog opens or closes
   useEffect(() => {
     if (isOpen) {
@@ -81,25 +72,21 @@ const InputDialog = ({
       setError('');
     }
   }, [isOpen]);
-
   const handleSubmit = () => {
     if (!inputValue.trim()) {
       setError(`${label} is required`);
       return;
     }
-
     onSave(inputValue.trim());
     setInputValue('');
     setError('');
     onClose();
   };
-
   const handleClose = () => {
     setInputValue('');
     setError('');
     onClose();
   };
-
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       handleSubmit();
@@ -107,9 +94,7 @@ const InputDialog = ({
       handleClose();
     }
   };
-
   if (!isOpen) return null;
-
   return (
     <div className="dialog-overlay" onClick={handleClose}>
       <div className="dialog-content" onClick={(e) => e.stopPropagation()}>
@@ -119,7 +104,6 @@ const InputDialog = ({
             ✕
           </button>
         </div>
-
         <div className="dialog-body">
           <div className="form-group">
             <label htmlFor="dialogInput" className="form-label">
@@ -137,7 +121,6 @@ const InputDialog = ({
             />
             {error && <p className="error-message">{error}</p>}
           </div>
-
           <div className="dialog-actions">
             <button type="button" onClick={handleClose} className="btn-secondary">
               Cancel
@@ -151,8 +134,6 @@ const InputDialog = ({
     </div>
   );
 };
-
-
 // UserRegistrationDialog Component - Multi-field dialog for user registration
 const UserRegistrationDialog = ({ isOpen, onClose, onRegisterUser }) => {
   const [firstName, setFirstName] = useState('');
@@ -161,13 +142,10 @@ const UserRegistrationDialog = ({ isOpen, onClose, onRegisterUser }) => {
   const [mobile, setMobile] = useState('');
   const [group, setGroup] = useState(''); // Default group or fetch from options
   const [role, setRole] = useState('');   // Default role or fetch from options
-
   const [errors, setErrors] = useState({});
-
   // Mock options for Group and Role (in a real app, these would come from API)
   const groupOptions = ['Admin', 'Users', 'Support', 'Developers'];
   const roleOptions = ['Administrator', 'Manager', 'User', 'Viewer'];
-
   // Reset form fields and errors when dialog opens
   useEffect(() => {
     if (isOpen) {
@@ -180,7 +158,6 @@ const UserRegistrationDialog = ({ isOpen, onClose, onRegisterUser }) => {
       setErrors({});
     }
   }, [isOpen]);
-
   const validate = () => {
     const newErrors = {};
     if (!firstName.trim()) newErrors.firstName = 'First Name is required';
@@ -193,11 +170,9 @@ const UserRegistrationDialog = ({ isOpen, onClose, onRegisterUser }) => {
     if (!mobile.trim()) newErrors.mobile = 'Mobile number is required';
     if (!group) newErrors.group = 'Group is required';
     if (!role) newErrors.role = 'Role is required';
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validate()) {
@@ -215,9 +190,7 @@ const UserRegistrationDialog = ({ isOpen, onClose, onRegisterUser }) => {
       onClose(); // Close dialog on successful registration
     }
   };
-
   if (!isOpen) return null;
-
   return (
     <div className="dialog-overlay" onClick={onClose}>
       <div className="dialog-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}> {/* Increased max-width for more fields */}
@@ -280,19 +253,6 @@ const UserRegistrationDialog = ({ isOpen, onClose, onRegisterUser }) => {
                 {errors.mobile && <p className="error-message">{errors.mobile}</p>}
               </div>
               <div className="form-group">
-                <label htmlFor="regGroup" className="form-label">Group</label>
-                <select
-                  id="regGroup"
-                  className={`form-input ${errors.group ? 'error' : ''}`}
-                  value={group}
-                  onChange={(e) => setGroup(e.target.value)}
-                >
-                  <option value="">Select a group</option>
-                  {groupOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-                {errors.group && <p className="error-message">{errors.group}</p>}
-              </div>
-              <div className="form-group">
                 <label htmlFor="regRole" className="form-label">Role</label>
                 <select
                   id="regRole"
@@ -305,6 +265,20 @@ const UserRegistrationDialog = ({ isOpen, onClose, onRegisterUser }) => {
                 </select>
                 {errors.role && <p className="error-message">{errors.role}</p>}
               </div>
+              <div className="form-group">
+                <label htmlFor="regGroup" className="form-label">Group</label>
+                <select
+                  id="regGroup"
+                  className={`form-input ${errors.group ? 'error' : ''}`}
+                  value={group}
+                  onChange={(e) => setGroup(e.target.value)}
+                >
+                  <option value="">Select a group</option>
+                  {groupOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+                {errors.group && <p className="error-message">{errors.group}</p>}
+              </div>
+              
             </div>
           </div>
           <div className="dialog-actions" style={{ padding: '0 25px 25px', marginTop: '0' }}>
@@ -320,17 +294,13 @@ const UserRegistrationDialog = ({ isOpen, onClose, onRegisterUser }) => {
     </div>
   );
 };
-
-
 // GroupDialog Component - New multi-field dialog for group creation with tenant dropdown
-
 const GroupDialog = ({ isOpen, onClose, onSaveGroup }) => {
   const [groupName, setGroupName] = useState('');
   const [selectedTenantId, setSelectedTenantId] = useState('');
-  const [tenants, setTenants] = useState([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-
   // API call to fetch tenants
   const admin_id = localStorage.getItem("userId")
   const fetchTenants = async () => {
@@ -344,17 +314,10 @@ const GroupDialog = ({ isOpen, onClose, onSaveGroup }) => {
           // 'Authorization': `Bearer ${token}`
         },
       });
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
       const data = await response.json();
-
-      const tenants = data.data
-
-      console.log("datadatadata",data.data);
-      
       setTenants(data.data);
     } catch (error) {
       console.error('Error fetching tenants:', error);
@@ -363,7 +326,6 @@ const GroupDialog = ({ isOpen, onClose, onSaveGroup }) => {
       setLoading(false);
     }
   };
-
   // Reset form and fetch tenants when dialog opens
   useEffect(() => {
     if (isOpen) {
@@ -373,7 +335,6 @@ const GroupDialog = ({ isOpen, onClose, onSaveGroup }) => {
       fetchTenants();
     }
   }, [isOpen]);
-
   const validate = () => {
     const newErrors = {};
     if (!groupName.trim()) newErrors.groupName = 'Group Name is required';
@@ -381,7 +342,6 @@ const GroupDialog = ({ isOpen, onClose, onSaveGroup }) => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validate()) {
@@ -389,9 +349,7 @@ const GroupDialog = ({ isOpen, onClose, onSaveGroup }) => {
       onClose();
     }
   };
-
   if (!isOpen) return null;
-
   return (
     <div className="dialog-overlay" onClick={onClose}>
       <div className="dialog-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
@@ -418,7 +376,7 @@ const GroupDialog = ({ isOpen, onClose, onSaveGroup }) => {
             </div>
             
             <div className="form-group">
-              <label htmlFor="groupTenant" className="form-label">Tenant</label>
+              <label htmlFor="groupTenant" className="form-label">Organisation</label>
               <select
                 id="groupTenant"
                 className={`form-input ${errors.selectedTenantId ? 'error' : ''}`}
@@ -427,7 +385,7 @@ const GroupDialog = ({ isOpen, onClose, onSaveGroup }) => {
                 disabled={loading}
               >
                 <option value="">
-                  {loading ? 'Loading tenants...' : 'Select a tenant'}
+                  {loading ? 'Loading tenants...' : 'Select a organisation'}
                 </option>
                 {tenants.map(tenant => (
                   <option key={tenant.id} value={tenant.id}>
@@ -453,26 +411,19 @@ const GroupDialog = ({ isOpen, onClose, onSaveGroup }) => {
     </div>
   );
 };
-
-
-
-
 // RoleDialog Component - New multi-field dialog for role creation with group and tenant dropdowns
 const RoleDialog = ({ isOpen, onClose, onSaveRole }) => {
   const [roleName, setRoleName] = useState('');
   const [selectedGroupId, setSelectedGroupId] = useState('');
   const [selectedTenantId, setSelectedTenantId] = useState('');
-  const [groups, setGroups] = useState([]);
-  const [tenants, setTenants] = useState([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState({
     groups: false,
     tenants: false
   });
-
     const admin_id = localStorage.getItem("userId")
-
-
   // API call to fetch groups
   const fetchGroups = async () => {
     try {
@@ -485,12 +436,13 @@ const RoleDialog = ({ isOpen, onClose, onSaveRole }) => {
           // 'Authorization': `Bearer ${token}`
         },
       });
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
       const data = await response.json();
+
+            console.log("dadadadada",data.data);
+
       setGroups(data.data);
     } catch (error) {
       console.error('Error fetching groups:', error);
@@ -499,7 +451,6 @@ const RoleDialog = ({ isOpen, onClose, onSaveRole }) => {
       setLoading(prev => ({ ...prev, groups: false }));
     }
   };
-
   // API call to fetch tenants
   const fetchTenants = async () => {
     try {
@@ -512,11 +463,9 @@ const RoleDialog = ({ isOpen, onClose, onSaveRole }) => {
           // 'Authorization': `Bearer ${token}`
         },
       });
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
       const data = await response.json();
       setTenants(data.data);
     } catch (error) {
@@ -526,12 +475,10 @@ const RoleDialog = ({ isOpen, onClose, onSaveRole }) => {
       setLoading(prev => ({ ...prev, tenants: false }));
     }
   };
-
   // Fetch both groups and tenants in parallel
   const fetchData = async () => {
     await Promise.all([fetchGroups(), fetchTenants()]);
   };
-
   // Reset form and fetch data when dialog opens
   useEffect(() => {
     if (isOpen) {
@@ -544,7 +491,6 @@ const RoleDialog = ({ isOpen, onClose, onSaveRole }) => {
       fetchData();
     }
   }, [isOpen]);
-
   const validate = () => {
     const newErrors = {};
     if (!roleName.trim()) newErrors.roleName = 'Role Name is required';
@@ -553,7 +499,6 @@ const RoleDialog = ({ isOpen, onClose, onSaveRole }) => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validate()) {
@@ -561,11 +506,8 @@ const RoleDialog = ({ isOpen, onClose, onSaveRole }) => {
       onClose();
     }
   };
-
   const isAnyLoading = loading.groups || loading.tenants;
-
   if (!isOpen) return null;
-
   return (
     <div className="dialog-overlay" onClick={onClose}>
       <div className="dialog-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
@@ -590,31 +532,9 @@ const RoleDialog = ({ isOpen, onClose, onSaveRole }) => {
               />
               {errors.roleName && <p className="error-message">{errors.roleName}</p>}
             </div>
-            
+
             <div className="form-group">
-              <label htmlFor="roleGroup" className="form-label">Group</label>
-              <select
-                id="roleGroup"
-                className={`form-input ${errors.selectedGroupId ? 'error' : ''}`}
-                value={selectedGroupId}
-                onChange={(e) => setSelectedGroupId(e.target.value)}
-                disabled={loading.groups}
-              >
-                <option value="">
-                  {loading.groups ? 'Loading groups...' : 'Select a group'}
-                </option>
-                {groups.map(group => (
-                  <option key={group.id} value={group.id}>
-                    {group.group_name}
-                  </option>
-                ))}
-              </select>
-              {errors.selectedGroupId && <p className="error-message">{errors.selectedGroupId}</p>}
-              {errors.groups && <p className="error-message">{errors.groups}</p>}
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="roleTenant" className="form-label">Tenant</label>
+              <label htmlFor="roleTenant" className="form-label">Organisation</label>
               <select
                 id="roleTenant"
                 className={`form-input ${errors.selectedTenantId ? 'error' : ''}`}
@@ -623,7 +543,7 @@ const RoleDialog = ({ isOpen, onClose, onSaveRole }) => {
                 disabled={loading.tenants}
               >
                 <option value="">
-                  {loading.tenants ? 'Loading tenants...' : 'Select a tenant'}
+                  {loading.tenants ? 'Loading tenants...' : 'Select a organisation'}
                 </option>
                 {tenants.map(tenant => (
                   <option key={tenant.id} value={tenant.id}>
@@ -634,6 +554,33 @@ const RoleDialog = ({ isOpen, onClose, onSaveRole }) => {
               {errors.selectedTenantId && <p className="error-message">{errors.selectedTenantId}</p>}
               {errors.tenants && <p className="error-message">{errors.tenants}</p>}
             </div>
+            
+            <div className="form-group">
+              <label htmlFor="roleGroup" className="form-label">Group</label>
+             <select
+                id="roleGroup"
+                className={`form-input ${errors.selectedGroupId ? 'error' : ''}`}
+                value={selectedGroupId}
+                onChange={(e) => setSelectedGroupId(e.target.value)}
+                disabled={loading.groups || !selectedTenantId}
+              >
+                <option value="">
+                  {loading.groups ? 'Loading groups...' : !selectedTenantId ? 'Select an organisation first' : 'Select a group'}
+                </option>
+                {groups
+                  .filter(group => group.id === parseInt(selectedTenantId))
+                  .map(group => (
+                    <option key={group.id} value={group.id}>
+                      {group.group_name}
+                    </option>
+                  ))}
+              </select>
+
+              {errors.selectedGroupId && <p className="error-message">{errors.selectedGroupId}</p>}
+              {errors.groups && <p className="error-message">{errors.groups}</p>}
+            </div>
+            
+            
           </div>
           
           <div className="dialog-actions" style={{ padding: '0 25px 25px', marginTop: '0' }}>
@@ -649,15 +596,14 @@ const RoleDialog = ({ isOpen, onClose, onSaveRole }) => {
     </div>
   );
 };
-
 const ActionDropdown = ({ itemId, onEdit, onDelete, isOpen, onToggle }) => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (isOpen && !event.target.closest('.actions-dropdown')) {
-        onToggle(null);
+        onToggle(null); // Close the dropdown when clicking outside
       }
     };
-
+    
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [isOpen, onToggle]);
@@ -668,7 +614,7 @@ const ActionDropdown = ({ itemId, onEdit, onDelete, isOpen, onToggle }) => {
         className="actions-btn"
         onClick={(e) => {
           e.stopPropagation();
-          onToggle(itemId);
+          onToggle(isOpen ? null : itemId);
         }}
       >
         ⋯
@@ -700,285 +646,620 @@ const ActionDropdown = ({ itemId, onEdit, onDelete, isOpen, onToggle }) => {
     </div>
   );
 };
+ const UserEditDialog = ({ isOpen, onClose, onUpdateUser, userToEdit }) => {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [group, setGroup] = useState('');
+  const[groupOptions,setGroups] = useState<Group[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
 
+  const [role, setRole] = useState('');
+  const [errors, setErrors] = useState({});
+  // Mock options for Group and Role (in a real app, these would come from API)
+  const roleOptions = ['Administrator', 'Manager', 'User', 'Viewer'];
+  // Populate form fields when dialog opens with user data
+  useEffect(() => {
+    if (isOpen && userToEdit) {
+      setFirstName(userToEdit.first_name || '');
+      setLastName(userToEdit.last_name || '');
+      setEmail(userToEdit.email || '');
+      setGroup(userToEdit.group_id || '');
+      setRole(userToEdit.role || '');
+      setErrors({});
+      fetchData()
+    }
+  }, [isOpen, userToEdit]);
+    const admin_id = localStorage.getItem("userId"); // Fallback for mock environment
+
+   const fetchGroups = async () => {
+    try {
+      const response = await fetch(`http://localhost:4002/api/groups/getGroups/${admin_id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          // 'Authorization': `Bearer ${token}`
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setGroups(data.data);
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+      setErrors(prev => ({ ...prev, groups: 'Failed to load groups' }));
+    } finally {
+    }
+  };
+   const fetchTenants = async () => {
+    try {
+      const response =  await fetch(`http://localhost:4002/api/realm/getRealm/${admin_id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          // Add authorization header if needed
+          // 'Authorization': `Bearer ${token}`
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setTenants(data.data);
+    } catch (error) {
+      console.error('Error fetching tenants:', error);
+      setErrors(prev => ({ ...prev, tenants: 'Failed to load tenants' }));
+    } finally {
+    }
+  };
+  const fetchData = async () => {
+    await Promise.all([fetchGroups(), fetchTenants()]);
+  };
+  const validate = () => {
+    const newErrors = {};
+    if (!firstName.trim()) newErrors.firstName = 'First Name is required';
+    if (!lastName.trim()) newErrors.lastName = 'Last Name is required';
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Email address is invalid';
+    }
+    if (!mobile.trim()) newErrors.mobile = 'Mobile number is required';
+    if (!group) newErrors.group = 'Group is required';
+    if (!role) newErrors.role = 'Role is required';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (validate()) {
+      const updatedUser = {
+        ...userToEdit, // Keep existing properties like userId, createdAt
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim(),
+        mobile: mobile.trim(),
+        group: group,
+        role: role,
+        updatedAt: new Date().toLocaleDateString('en-GB'), // Add update timestamp
+      };
+      onUpdateUser(updatedUser);
+      onClose(); // Close dialog on successful update
+    }
+  };
+  if (!isOpen || !userToEdit) return null;
+  return (
+    <div className="dialog-overlay" onClick={onClose}>
+      <div className="dialog-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+        <div className="dialog-header">
+          <h2 className="dialog-title">Edit User</h2>
+          <button className="dialog-close" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="dialog-body">
+            <div className="form-grid">
+              <div className="form-group">
+                <label htmlFor="editFirstName" className="form-label">First Name</label>
+                <input
+                  type="text"
+                  id="editFirstName"
+                  className={`form-input ${errors.firstName ? 'error' : ''}`}
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="Enter first name"
+                  autoFocus
+                />
+                {errors.firstName && <p className="error-message">{errors.firstName}</p>}
+              </div>
+              <div className="form-group">
+                <label htmlFor="editLastName" className="form-label">Last Name</label>
+                <input
+                  type="text"
+                  id="editLastName"
+                  className={`form-input ${errors.lastName ? 'error' : ''}`}
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Enter last name"
+                />
+                {errors.lastName && <p className="error-message">{errors.lastName}</p>}
+              </div>
+              <div className="form-group">
+                <label htmlFor="editEmail" className="form-label">Email</label>
+                <input
+                  type="email"
+                  id="editEmail"
+                  className={`form-input ${errors.email ? 'error' : ''}`}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter email address"
+                />
+                {errors.email && <p className="error-message">{errors.email}</p>}
+              </div>
+              <div className="form-group">
+                <label htmlFor="editMobile" className="form-label">Mobile</label>
+                <input
+                  type="tel"
+                  id="editMobile"
+                  className={`form-input ${errors.mobile ? 'error' : ''}`}
+                  value={mobile}
+                  onChange={(e) => setMobile(e.target.value)}
+                  placeholder="Enter mobile number"
+                />
+                {errors.mobile && <p className="error-message">{errors.mobile}</p>}
+              </div>
+              <div className="form-group">
+                <label htmlFor="editGroup" className="form-label">Group</label>
+                <select
+                  id="editGroup"
+                  className={`form-input ${errors.group ? 'error' : ''}`}
+                  value={group}
+                  onChange={(e) => setGroup(e.target.value)}
+                >
+                  <option value="">Select a group</option>
+                   {groupOptions.map(groupItem => (
+                    <option key={groupItem.id || groupItem.group_id} value={groupItem.id || groupItem.group_id}>
+                      {groupItem.name || groupItem.group_name}
+                    </option>
+                  ))}                </select>
+                {errors.group && <p className="error-message">{errors.group}</p>}
+              </div>
+              <div className="form-group">
+                <label htmlFor="editRole" className="form-label">Role</label>
+                <select
+                  id="editRole"
+                  className={`form-input ${errors.role ? 'error' : ''}`}
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                >
+                  <option value="">Select a role</option>
+                  {roleOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+                {errors.role && <p className="error-message">{errors.role}</p>}
+              </div>
+            </div>
+          </div>
+          <div className="dialog-actions" style={{ padding: '0 25px 25px', marginTop: '0' }}>
+            <button type="button" onClick={onClose} className="btn-secondary">
+              Cancel
+            </button>
+            <button type="submit" className="btn-primary">
+              Update User
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
 const Dashboard = ({ keycloak = mockKeycloak }) => {
+   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState('tenants');
   const [currentView, setCurrentView] = useState('dashboard');
-  const [activeDropdown, setActiveDropdown] = useState(null);
-
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   // Dialog open states for different entities
   const [isTenantDialogOpen, setIsTenantDialogOpen] = useState(false);
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
-  const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false); // Controlled by new RoleDialog
+  const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
   const [isUserRegistrationDialogOpen, setIsUserRegistrationDialogOpen] = useState(false);
+  const [isUserEditDialogOpen, setIsUserEditDialogOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState<User | null>(null);
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState({
+    tenants: false,
+    groups: false,
+    roles: false,
+    users: false,
+  });
 
   // Data states
-  const [tenants, setTenants] = useState([
-    { id: 1, name: 'Innovate Inc.', createdAt: '15/01/2023' },
-    { id: 2, name: 'Quantum Solutions', createdAt: '20/02/2023' },
-    { id: 3, name: 'Apex Logistics', createdAt: '10/03/2023' },
-  ]);
-  
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const admin_id = localStorage.getItem("userId"); // Fallback for mock environment
 
-  const [users, setUsers] = useState([
-    {
-      userId: 'USR001',
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'john.doe@example.com',
-      mobile: '+1234567890',
-      group: 'Admin',
-      role: 'Administrator',
-      createdAt: '15/01/2023'
-    },
-    {
-      userId: 'USR002',
-      firstName: 'Jane',
-      lastName: 'Smith',
-      email: 'jane.smith@example.com',
-      mobile: '+1234567891',
-      group: 'Users',
-      role: 'Manager',
-      createdAt: '20/02/2023'
-    }
-  ]);
-
-  const [groups, setGroups] = useState([
-    { id: 101, name: 'Administrators', description: 'System administrators', tenantId: 1, createdAt: '01/01/2023' },
-    { id: 102, name: 'Developers', description: 'Software developers', tenantId: 1, createdAt: '05/01/2023' },
-    { id: 103, name: 'Sales Team', description: 'Quantum Solutions Sales', tenantId: 2, createdAt: '10/03/2024' },
-  ]);
-
-  const [roles, setRoles] = useState([
-    { id: 201, name: 'Administrator', description: 'Full system access', groupId: 101, tenantId: 1, createdAt: '01/01/2023' },
-    { id: 202, name: 'Editor', description: 'Content editing privileges', groupId: 102, tenantId: 1, createdAt: '10/01/2023' },
-    { id: 203, name: 'Sales Rep', description: 'Manages sales activities', groupId: 103, tenantId: 2, createdAt: '15/03/2024' },
-  ]);
-
-  const navItems = [
-    { id: 'tenants', label: 'Tenants', icon: '🏢' },
-    { id: 'group', label: 'Groups', icon: '👥' },
-    { id: 'roles', label: 'Roles', icon: '🎭' },
-    { id: 'users', label: 'Users', icon: '👤' },
-    { id: 'rules', label: 'Rules', icon: '📋' },
-    { id: 'functions', label: 'Custom Functions', icon: '⚙️' },
-  ];
-
-  const handleNavClick = (navId) => {
-    setActiveNav(navId);
-    // Ensure any open dialogs are closed when navigating
-    setIsTenantDialogOpen(false);
-    setIsGroupDialogOpen(false);
-    setIsRoleDialogOpen(false);
-    setIsUserRegistrationDialogOpen(false);
-    setCurrentView('dashboard'); // Always return to dashboard view on nav click
-    setActiveDropdown(null);
-  };
-
-  // Generic handler to open appropriate dialog
-  const handleAddItem = () => {
-    switch (activeNav) {
-      case 'tenants':
-        setIsTenantDialogOpen(true);
-        break;
-      case 'users':
-        setIsUserRegistrationDialogOpen(true);
-        break;
-      case 'group':
-        setIsGroupDialogOpen(true);
-        break;
-      case 'roles':
-        setIsRoleDialogOpen(true); // Open the new RoleDialog
-        break;
-      default:
-        break;
+  // --- Fetch Data Functions ---
+  const fetchTenants = async () => {
+    try {
+      setLoading(prev => ({ ...prev, tenants: true }));
+      const response = await fetch(`http://localhost:4002/api/realm/getRealm/${admin_id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          // Add authorization header if needed
+          // 'Authorization': `Bearer ${token}`
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setTenants(data.data);
+    } catch (error) {
+      console.error('Error fetching tenants:', error);
+      setErrors(prev => ({ ...prev, tenants: 'Failed to load tenants' }));
+    } finally {
+      setLoading(prev => ({ ...prev, tenants: false }));
     }
   };
 
-  // Save functions for each entity
-  const handleSaveTenant = async (name) => {
-  const profileString = localStorage.getItem("userProfile");
-   const userProfile = profileString ? JSON.parse(profileString) : undefined;
-  const newTenant = {
+  const fetchGroups = async () => {
+    try {
+      setLoading(prev => ({ ...prev, groups: true }));
+      const response = await fetch(`http://localhost:4002/api/groups/getGroups/${admin_id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          // 'Authorization': `Bearer ${token}`
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setGroups(data.data);
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+      setErrors(prev => ({ ...prev, groups: 'Failed to load groups' }));
+    } finally {
+      setLoading(prev => ({ ...prev, groups: false }));
+    }
+  };
+
+  const fetchRoles = async () => {
+    try {
+      setLoading(prev => ({ ...prev, roles: true }));
+      const response = await fetch(`http://localhost:4002/api/roles/getRoles/${admin_id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          // 'Authorization': `Bearer ${token}`
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setRoles(data.data);
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+      setErrors(prev => ({ ...prev, roles: 'Failed to load roles' }));
+    } finally {
+      setLoading(prev => ({ ...prev, roles: false }));
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(prev => ({ ...prev, users: true }));
+      const response = await fetch(`http://localhost:4002/api/users/getUsers/${admin_id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          // 'Authorization': `Bearer ${token}`
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setUsers(data.data);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      setErrors(prev => ({ ...prev, users: 'Failed to load users' }));
+    } finally {
+      setLoading(prev => ({ ...prev, users: false }));
+    }
+  };
+
+
+  // --- useEffect for initial data load based on activeNav ---
+  useEffect(() => {
+    setErrors({}); // Clear errors on view change
+    if (activeNav === 'tenants') {
+      fetchTenants();
+    } else if (activeNav === 'groups') {
+      fetchGroups();
+    } else if (activeNav === 'roles') {
+      fetchRoles();
+    } else if (activeNav === 'users') {
+      fetchUsers();
+    }
+  }, [activeNav]);
+
+  // --- Handlers for Dialogs ---
+  const handleCreateTenant = async (name: string) => {
+    try {
+       const profileString = localStorage.getItem("userProfile");
+      const userProfile = profileString ? JSON.parse(profileString) : undefined;
+      const newTenant = {
     name,
     createdAt: new Date().toLocaleDateString('en-GB'),
     userDetails : userProfile
   };
-  console.log("newTenantnewTenant",newTenant);
-  
-  
-  console.log("newTenant", newTenant);
-  
-  try {
-    const response = await fetch('http://localhost:4002/api/realm/createRealm', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: name, // or newTenant.name
-        createdAt: newTenant.createdAt,
-        userDetails:newTenant.userDetails
-        // Add any other fields your API expects
-      }),
-    });
-
-    console.log("responseresponseresponse",response);
-    
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const response = await fetch('http://localhost:4002/api/realm/createRealm', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: name,
+          createdAt: newTenant.createdAt,
+          userDetails: newTenant.userDetails
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      await response.json();
+      fetchTenants(); // Refresh list after creation
+    } catch (error) {
+      console.error('Error creating tenant:', error);
+      setErrors(prev => ({ ...prev, createTenant: 'Failed to create tenant' }));
     }
+  };
 
-    const result = await response.json();
-    console.log('API response:', result);
-    
-    // Update local state with the new tenant
-    setTenants((prev) => [...prev, newTenant]); // Fixed: was missing 'prev'
-    
-    return result;
-  } catch (error) {
-    console.error('Error saving tenant:', error);
-    // Handle error appropriately - maybe show a toast notification
-    throw error;
+  const handleDeleteTenant = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this tenant?')) return;
+    try {
+      const response = await fetch(`http://localhost:4002/api/realm/deleteRealm/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      fetchTenants(); // Refresh list after deletion
+    } catch (error) {
+      console.error('Error deleting tenant:', error);
+      setErrors(prev => ({ ...prev, deleteTenant: 'Failed to delete tenant' }));
+    }
+  };
+
+  const handleCreateGroup = async (group_name: string, tenantId: number) => {
+    try {
+      const response = await fetch('http://localhost:4002/api/groups/createGroup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ group_name, tenantId, admin_id }),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      await response.json();
+      fetchGroups(); // Refresh list after creation
+    } catch (error) {
+      console.error('Error creating group:', error);
+      setErrors(prev => ({ ...prev, createGroup: 'Failed to create group' }));
+    }
+  };
+
+  const handleDeleteGroup = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this group?')) return;
+    try {
+      const response = await fetch(`http://localhost:4002/api/groups/deleteGroup/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      fetchGroups(); // Refresh list after deletion
+    } catch (error) {
+      console.error('Error deleting group:', error);
+      setErrors(prev => ({ ...prev, deleteGroup: 'Failed to delete group' }));
+    }
+  };
+
+  const handleCreateRole = async (role_name: string, groupId: number, tenantId: number) => {
+    try {
+      const response = await fetch('http://localhost:4002/api/roles/createRole', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ role_name, groupId, tenantId, admin_id }),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      await response.json();
+      fetchRoles(); // Refresh list after creation
+    } catch (error) {
+      console.error('Error creating role:', error);
+      setErrors(prev => ({ ...prev, createRole: 'Failed to create role' }));
+    }
+  };
+
+  const handleDeleteRole = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this role?')) return;
+    try {
+      const response = await fetch(`http://localhost:4002/api/roles/deleteRole/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      fetchRoles(); // Refresh list after deletion
+    } catch (error) {
+      console.error('Error deleting role:', error);
+      setErrors(prev => ({ ...prev, deleteRole: 'Failed to delete role' }));
+    }
+  };
+
+  const handleRegisterUser = async (newUser: User) => {
+    try {
+      const response = await fetch('http://localhost:4002/api/users/createUser', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ...newUser, admin_id }),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      await response.json();
+      fetchUsers(); // Refresh list after creation
+    } catch (error) {
+      console.error('Error registering user:', error);
+      setErrors(prev => ({ ...prev, registerUser: 'Failed to register user' }));
+    }
+  };
+
+  const handleUpdateUser = async (updatedUser: User) => {
+    try {
+      const response = await fetch(`http://localhost:4002/api/users/updateUser/${updatedUser.userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedUser),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      await response.json();
+      fetchUsers(); // Refresh list after update
+    } catch (error) {
+      console.error('Error updating user:', error);
+      setErrors(prev => ({ ...prev, updateUser: 'Failed to update user' }));
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    try {
+      const response = await fetch(`http://localhost:4002/api/users/deleteUser/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      fetchUsers(); // Refresh list after deletion
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      setErrors(prev => ({ ...prev, deleteUser: 'Failed to delete user' }));
+    }
+  };
+
+
+  const handleEditUser = (user: User) => {
+    setUserToEdit(user);
+    setIsUserEditDialogOpen(true);
+  };
+
+  const navItems: NavItem[] = [
+    { id: 'tenants', label: 'Organisation', icon: '🏢' },
+    { id: 'groups', label: 'Groups', icon: '👥' },
+    { id: 'roles', label: 'Roles', icon: '🔑' },
+    { id: 'users', label: 'Users', icon: '👤' },
+    { id: 'rules', label: 'Rules', icon: '🤖' },
+  ];
+const [rules, setRules] = useState([
+  {
+    id: 1,
+    name: "Password Policy",
+    description: "Enforce strong password requirements for all users",
+    isActive: true,
+    created_at: "2024-01-15T10:30:00Z"
+  },
+  {
+    id: 2,
+    name: "Session Timeout",
+    description: "Automatically log out users after 30 minutes of inactivity",
+    isActive: false,
+    created_at: "2024-01-20T14:45:00Z"
+  },
+  {
+    id: 3,
+    name: "File Upload Restrictions",
+    description: "Limit file uploads to specific formats and sizes",
+    isActive: true,
+    created_at: "2024-02-01T09:15:00Z"
+  },
+  {
+    id: 4,
+    name: "API Rate Limiting",
+    description: "Prevent abuse by limiting API requests per user",
+    isActive: true,
+    created_at: "2024-02-05T16:20:00Z"
   }
-};
+]);
 
-  const handleRegisterUser = (newUser) => {
-    setUsers((prev) => [...prev, newUser]);
-  };
-
-  const handleSaveGroup = (name, tenantId) => {
-    const newGroup = {
-      id: Date.now(),
-      name,
-      description: `Description for ${name}`, // Add a default description
-      tenantId: tenantId, // Assign the selected tenant ID
-      createdAt: new Date().toLocaleDateString('en-GB'),
-    };
-    setGroups((prev) => [...prev, newGroup]);
-  };
-
-  const handleEditTenant = (tenant) => {
-    alert(`Edit tenant: ${tenant.name}`);
-    // Add edit logic here
-  };
-
-  const handleEditUser = (user) => {
-    alert(`Edit user: ${user.firstName} ${user.lastName}`);
-    // Add edit logic here
-  };
-
-  const handleEditGroup = (group) => {
-    alert(`Edit group: ${group.name}`);
-    // Add edit logic here
-  };
-
-  const handleEditRole = (role) => {
-    alert(`Edit role: ${role.name}`);
-    // Add edit logic here
-  };
-
-  // Delete handlers
-  const handleDeleteTenant = (tenant) => {
-    if (window.confirm(`Are you sure you want to delete ${tenant.name}?`)) {
-      setTenants((prev) => prev.filter((t) => t.id !== tenant.id));
-    }
-  };
-
-  const handleDeleteUser = (user) => {
-    if (window.confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}?`)) {
-      setUsers((prev) => prev.filter((u) => u.userId !== user.userId));
-    }
-  };
-
-  const handleDeleteGroup = (group) => {
-    if (window.confirm(`Are you sure you want to delete ${group.name}?`)) {
-      setGroups((prev) => prev.filter((g) => g.id !== group.id));
-    }
-  };
-
-  const handleDeleteRole = (role) => {
-    if (window.confirm(`Are you sure you want to delete ${role.name}?`)) {
-      setRoles((prev) => prev.filter((r) => r.id !== role.id));
-    }
-  };
-
-  // Updated handleSaveRole to accept name, groupId, and tenantId
-  const handleSaveRole = (name, groupId, tenantId) => {
-    const newRole = {
-      id: Date.now(),
-      name,
-      description: `Description for ${name} role`, // Add a default description
-      groupId: groupId,
-      tenantId: tenantId,
-      createdAt: new Date().toLocaleDateString('en-GB'),
-    };
-    setRoles((prev) => [...prev, newRole]);
-  };
-
-  const handleTenantAction = (tenant) => {
-    const actions = ['Edit', 'Delete', 'View Details', 'Export Data'];
-    const actionChoice = prompt(
-      `Actions for ${tenant.name}:\n\n${actions.map((a, i) => `${i + 1}. ${a}`).join('\n')}\n\nEnter action number:`
+  const handleToggleRule = (ruleId) => {
+    setRules(prevRules => 
+      prevRules.map(rule => 
+        rule.id === ruleId 
+          ? { ...rule, isActive: !rule.isActive }
+          : rule
+      )
     );
+  };
 
-    const actionIndex = parseInt(actionChoice || '') - 1;
-    if (actionIndex >= 0 && actionIndex < actions.length) {
-      const selectedAction = actions[actionIndex];
+  // const ActionDropdown = ({ itemId, isOpen, onToggle, onEdit, onDelete }) => {
+  //   return (
+  //     <div className="action-dropdown">
+  //       <button 
+  //         className="action-btn"
+  //         onClick={() => onToggle(isOpen ? null : itemId)}
+  //       >
+  //         ⋮
+  //       </button>
+  //       {isOpen && (
+  //         <div className="dropdown-menu">
+  //           <button onClick={onEdit} className="dropdown-item">Edit</button>
+  //           <button onClick={onDelete} className="dropdown-item delete">Delete</button>
+  //         </div>
+  //       )}
+  //     </div>
+  //   );
+  // };
 
-      if (selectedAction === 'Delete') {
-        if (window.confirm(`Are you sure you want to delete ${tenant.name}?`)) {
-          setTenants((prev) => prev.filter((t) => t.id !== tenant.id));
-        }
-      } else {
-        alert(`${selectedAction} action selected for ${tenant.name}`);
-      }
+  const handleEditRule = (rule) => {
+    alert(`Edit Rule: ${rule.name}`);
+  };
+
+  const handleDeleteRule = (ruleId) => {
+    if (window.confirm('Are you sure you want to delete this rule?')) {
+      setRules(prevRules => prevRules.filter(rule => rule.id !== ruleId));
     }
-  };
-
-  // Helper for generic "Actions" button
-  const handleGenericAction = (item, type) => {
-    const actions = ['Edit', 'Delete', 'View Details'];
-    const actionChoice = prompt(
-      `Actions for ${item.name || item.firstName} (${type}):\n\n${actions.map((a, i) => `${i + 1}. ${a}`).join('\n')}\n\nEnter action number:`
-    );
-
-    const actionIndex = parseInt(actionChoice || '') - 1;
-    if (actionIndex >= 0 && actionIndex < actions.length) {
-      const selectedAction = actions[actionIndex];
-
-      if (selectedAction === 'Delete') {
-        if (window.confirm(`Are you sure you want to delete ${item.name || item.firstName} (${type})?`)) {
-          if (type === 'user') {
-            setUsers((prev) => prev.filter((u) => u.userId !== item.userId));
-          } else if (type === 'group') {
-            setGroups((prev) => prev.filter((g) => g.id !== item.id));
-          } else if (type === 'role') {
-            setRoles((prev) => prev.filter((r) => r.id !== item.id));
-          }
-        }
-      } else {
-        alert(`${selectedAction} action selected for ${item.name || item.firstName} (${type})`);
-      }
-    }
-  };
-
-  const getCurrentPageTitle = () => {
-    const currentNav = navItems.find((item) => item.id === activeNav);
-    return currentNav ? currentNav.label : 'Dashboard';
-  };
-
-  // Helper to get tenant name from ID
-  const getTenantName = (tenantId) => {
-    const tenant = tenants.find(t => t.id === tenantId);
-    return tenant ? tenant.name : 'N/A';
-  };
-
-  // Helper to get group name from ID
-  const getGroupName = (groupId) => {
-    const group = groups.find(g => g.id === groupId);
-    return group ? group.name : 'N/A';
   };
 
   const renderContent = () => {
@@ -987,209 +1268,371 @@ const Dashboard = ({ keycloak = mockKeycloak }) => {
         return (
           <div className="content-card">
             <div className="card-header">
-              <h2 className="card-title">All Tenants</h2>
-              <p className="card-subtitle">A list of all B2B clients in the system.</p>
+              <h2 className="card-title">Organisation Management</h2>
+              <button className="btn-primary" onClick={() => setIsTenantDialogOpen(true)}>
+                Add New Organisation
+              </button>
             </div>
-
-            <div className="table-container">
-              {tenants.length > 0 ? (
-                <table className="data-table">
-                  <thead>
+            {errors.tenants && <p className="error-message">{errors.tenants}</p>}
+            {errors.createTenant && <p className="error-message">{errors.createTenant}</p>}
+            {errors.deleteTenant && <p className="error-message">{errors.deleteTenant}</p>}
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Organisation ID</th>
+                    <th>Name</th>
+                    <th>Created At</th>
+                    {/* <th className="text-center">Actions</th> */}
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading.tenants ? (
                     <tr>
-                      <th>Name</th>
-                      <th>Created At</th>
-                      <th>Actions</th>
+                      <td colSpan={4} className="text-center">Loading tenants...</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {tenants.map((tenant) => (
+                  ) : tenants.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="text-center">No tenants found.</td>
+                    </tr>
+                  ) : (
+                    tenants.map((tenant) => (
                       <tr key={tenant.id}>
-                        <td className="tenant-name">{tenant.name}</td>
-                        <td className="created-date">{tenant.createdAt}</td>
-                        <td>
-                          <button className="actions-btn" onClick={() => handleTenantAction(tenant)}>
-                            ⋯
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <div className="empty-state">
-                  <p>No tenants found. Click "Add Tenant" to get started.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        );
-
-      case 'users':
-        return (
-          <div className="content-card">
-            <div className="card-header">
-              <h2 className="card-title">All Users</h2>
-              <p className="card-subtitle">Manage user accounts in the system.</p>
-            </div>
-
-            <div className="table-container">
-              {users.length > 0 ? (
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>User ID</th>
-                      <th>First Name</th>
-                      <th>Last Name</th>
-                      <th>Email</th>
-                      <th>Mobile</th>
-                      <th>Group</th>
-                      <th>Role</th>
-                      <th>Created At</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((user) => (
-                      <tr key={user.userId}>
-                        <td>{user.userId}</td>
-                        <td>{user.firstName}</td>
-                        <td>{user.lastName}</td>
-                        <td>{user.email}</td>
-                        <td>{user.mobile}</td>
-                        <td>{user.group}</td>
-                        <td>{user.role}</td>
-                        <td>{user.createdAt}</td>
-                        <td className="actions-cell">
+                        <td>{tenant.id}</td>
+                        <td>{tenant.name}</td>
+                        <td>{new Date(tenant.created_at).toLocaleDateString('en-GB')}</td>
+                        {/* <td className="text-center">
                           <ActionDropdown
-                            itemId={user.userId}
-                            onEdit={() => handleEditUser(user)}
-                            onDelete={() => handleDeleteUser(user)}
-                            isOpen={activeDropdown === user.userId}
+                            itemId={tenant.id.toString()}
+                            isOpen={activeDropdown === tenant.id.toString()}
                             onToggle={setActiveDropdown}
+                            onEdit={() => alert(`Edit Tenant ${tenant.name}`)}
+                            onDelete={() => handleDeleteTenant(tenant.id)}
                           />
-                        </td>
+                        </td> */}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <div className="empty-state">
-                  <p>No users found. Click "Add User" to get started.</p>
-                </div>
-              )}
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         );
-
-      case 'group':
+      case 'groups':
         return (
           <div className="content-card">
             <div className="card-header">
-              <h2 className="card-title">All Groups</h2>
-              <p className="card-subtitle">Manage user groups in the system.</p>
+              <h2 className="card-title">Groups Management</h2>
+              <button className="btn-primary" onClick={() => setIsGroupDialogOpen(true)}>
+                Create New Group
+              </button>
             </div>
-
-            <div className="table-container">
-              {groups.length > 0 ? (
-                <table className="data-table">
-                  <thead>
+            {errors.groups && <p className="error-message">{errors.groups}</p>}
+            {errors.createGroup && <p className="error-message">{errors.createGroup}</p>}
+            {errors.deleteGroup && <p className="error-message">{errors.deleteGroup}</p>}
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Group ID</th>
+                    <th>Group Name</th>
+                    <th>Organisation Name</th>
+                    <th>Created At</th>
+                    {/* <th className="text-center">Actions</th> */}
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading.groups ? (
                     <tr>
-                      <th>ID</th>
-                      <th>Name</th>
-                      <th>Tenant</th> {/* New column for Tenant */}
-                      <th>Description</th>
-                      <th>Created At</th>
-                      <th>Actions</th>
+                      <td colSpan={6} className="text-center">Loading groups...</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {groups.map((group) => (
+                  ) : groups.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center">No groups found.</td>
+                    </tr>
+                  ) : (
+                    groups.map((group) => (
                       <tr key={group.id}>
                         <td>{group.id}</td>
-                        <td>{group.name}</td>
-                        <td>{getTenantName(group.tenantId)}</td> {/* Display tenant name */}
-                        <td>{group.description}</td>
-                        <td>{group.createdAt}</td>
-                        <td>
-                          <button className="actions-btn" onClick={() => handleGenericAction(group, 'group')}>
-                            ⋯
-                          </button>
-                        </td>
+                        <td>{group.group_name}</td>
+                        <td>{group.tenant_name}</td>
+                        <td>{new Date(group.created_at).toLocaleDateString('en-GB')}</td>
+                        {/* <td className="text-center">
+                          <ActionDropdown
+                            itemId={group.id.toString()}
+                            isOpen={activeDropdown === group.id.toString()}
+                            onToggle={setActiveDropdown}
+                            onEdit={() => alert(`Edit Group ${group.group_name}`)}
+                            onDelete={() => handleDeleteGroup(group.id)}
+                          />
+                        </td> */}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <div className="empty-state">
-                  <p>No groups found. Click "Add Group" to get started.</p>
-                </div>
-              )}
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         );
-
       case 'roles':
         return (
           <div className="content-card">
             <div className="card-header">
-              <h2 className="card-title">All Roles</h2>
-              <p className="card-subtitle">Manage user roles and permissions.</p>
+              <h2 className="card-title">Roles Management</h2>
+              <button className="btn-primary" onClick={() => setIsRoleDialogOpen(true)}>
+                Create New Role
+              </button>
             </div>
-
-            <div className="table-container">
-              {roles.length > 0 ? (
-                <table className="data-table">
-                  <thead>
+            {errors.roles && <p className="error-message">{errors.roles}</p>}
+            {errors.createRole && <p className="error-message">{errors.createRole}</p>}
+            {errors.deleteRole && <p className="error-message">{errors.deleteRole}</p>}
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Role ID</th>
+                    <th>Role Name</th>
+                    <th>Group Name</th>
+                    <th>Organisation ID</th>
+                    <th>Created At</th>
+                    <th className="text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading.roles ? (
                     <tr>
-                      <th>ID</th>
-                      <th>Name</th>
-                      <th>Group</th> {/* New column for Group */}
-                      <th>Tenant</th> {/* New column for Tenant */}
-                      <th>Description</th>
-                      <th>Created At</th>
-                      <th>Actions</th>
+                      <td colSpan={6} className="text-center">Loading roles...</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {roles.map((role) => (
+                  ) : roles.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center">No roles found.</td>
+                    </tr>
+                  ) : (
+                    roles.map((role) => (
                       <tr key={role.id}>
                         <td>{role.id}</td>
-                        <td>{role.name}</td>
-                        <td>{getGroupName(role.groupId)}</td> {/* Display group name */}
-                        <td>{getTenantName(role.tenantId)}</td> {/* Display tenant name */}
-                        <td>{role.description}</td>
-                        <td>{role.createdAt}</td>
-                        <td>
-                          <button className="actions-btn" onClick={() => handleGenericAction(role, 'role')}>
-                            ⋯
-                          </button>
+                        <td>{role.role_name}</td>
+                        <td>{role.group_name}</td>
+                        <td>{role.tenant_id}</td>
+                        <td>{new Date(role.created_at).toLocaleDateString('en-GB')}</td>
+                        <td className="text-center">
+                          <ActionDropdown
+                            itemId={role.id.toString()}
+                            isOpen={activeDropdown === role.id.toString()}
+                            onToggle={setActiveDropdown}
+                            onEdit={() => alert(`Edit Role ${role.role_name}`)}
+                            onDelete={() => handleDeleteRole(role.id)}
+                          />
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <div className="empty-state">
-                  <p>No roles found. Click "Add Role" to get started.</p>
-                </div>
-              )}
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         );
-
-      case 'rules':
-        return <ChatbotScreen />;
-
+      case 'users':
+        return (
+          <div className="content-card">
+            <div className="card-header">
+              <h2 className="card-title">User Management</h2>
+              <button className="btn-primary" onClick={() => setIsUserRegistrationDialogOpen(true)}>
+                Register New User
+              </button>
+            </div>
+            {errors.users && <p className="error-message">{errors.users}</p>}
+            {errors.registerUser && <p className="error-message">{errors.registerUser}</p>}
+            {errors.updateUser && <p className="error-message">{errors.updateUser}</p>}
+            {errors.deleteUser && <p className="error-message">{errors.deleteUser}</p>}
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>User ID</th>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Email</th>
+                    <th>Group</th>
+                    <th>Role</th>
+                    <th>Created At</th>
+                    <th className="text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading.users ? (
+                    <tr>
+                      <td colSpan={9} className="text-center">Loading users...</td>
+                    </tr>
+                  ) : users.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="text-center">No users found.</td>
+                    </tr>
+                  ) : (
+                    users.map((user) => (
+                      <tr key={user.id}>
+                        <td>{user.id}</td>
+                        <td>{user.first_name}</td>
+                        <td>{user.last_name}</td>
+                        <td>{user.email}</td>
+                        <td>{user.group_id}</td>
+                        <td>{user.role}</td>
+                        <td>{user.created_at}</td>
+                        <td className="text-center">
+                          <ActionDropdown
+                            itemId={user.userId}
+                            isOpen={activeDropdown === user.userId}
+                            onToggle={setActiveDropdown}
+                            onEdit={() => handleEditUser(user)}
+                            onDelete={() => handleDeleteUser(user.userId)}
+                          />
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+    case 'rules':
+  return (
+    <div className="content-card">
+      <div className="card-header">
+        <h2 className="card-title">Rules Management</h2>
+    <button className="btn-primary" onClick={() => navigate('/ChatbotScreen')}>
+      Create New Rule
+    </button>
+      </div>
+      
+      {errors.rules && <p className="error-message">{errors.rules}</p>}
+      {errors.createRule && <p className="error-message">{errors.createRule}</p>}
+      {errors.deleteRule && <p className="error-message">{errors.deleteRule}</p>}
+      
+      <div className="table-responsive">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Rule ID</th>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Status</th>
+              <th className="text-center">Active</th>
+              <th>Created At</th>
+              <th className="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading.rules ? (
+              <tr>
+                <td colSpan={7} className="text-center">Loading rules...</td>
+              </tr>
+            ) : rules.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="text-center">No rules found.</td>
+              </tr>
+            ) : (
+              rules.map((rule) => (
+                <tr key={rule.id}>
+                  <td>{rule.id}</td>
+                  <td style={{ fontWeight: '500', color: '#374151' }}>{rule.name}</td>
+                  <td>
+                    <div 
+                      style={{
+                        maxWidth: '300px',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                      title={rule.description}
+                    >
+                      {rule.description}
+                    </div>
+                  </td>
+                  <td>
+                    <span 
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        background: rule.isActive ? '#d1fae5' : '#fee2e2',
+                        color: rule.isActive ? '#065f46' : '#991b1b'
+                      }}
+                    >
+                      {rule.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td className="text-center">
+                    <label style={{
+                      position: 'relative',
+                      display: 'inline-block',
+                      width: '50px',
+                      height: '24px'
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={rule.isActive}
+                        onChange={() => handleToggleRule(rule.id)}
+                        style={{ opacity: 0, width: 0, height: 0 }}
+                      />
+                      <span 
+                        style={{
+                          position: 'absolute',
+                          cursor: 'pointer',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          backgroundColor: rule.isActive ? '#10b981' : '#ccc',
+                          transition: '0.3s',
+                          borderRadius: '24px'
+                        }}
+                      >
+                        <span
+                          style={{
+                            position: 'absolute',
+                            content: '""',
+                            height: '18px',
+                            width: '18px',
+                            left: rule.isActive ? '29px' : '3px',
+                            bottom: '3px',
+                            backgroundColor: 'white',
+                            transition: '0.3s',
+                            borderRadius: '50%'
+                          }}
+                        />
+                      </span>
+                    </label>
+                  </td>
+                  <td>{new Date(rule.created_at).toLocaleDateString('en-GB')}</td>
+                  <td className="text-center">
+                    <ActionDropdown
+                      itemId={rule.id.toString()}
+                      isOpen={activeDropdown === rule.id.toString()}
+                      onToggle={setActiveDropdown}
+                      onEdit={() => alert(`Edit Rule: ${rule.name}`)}
+                      onDelete={() => handleDeleteRule(rule.id)}
+                    />
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
       default:
         return (
           <div className="content-card">
             <div className="card-header">
-              <h2 className="card-title">{getCurrentPageTitle()}</h2>
-              <p className="card-subtitle">This section is coming soon...</p>
+              <h2 className="card-title">Welcome to the Dashboard!</h2>
+              <p className="card-subtitle">Select an option from the sidebar to get started.</p>
             </div>
-            <div style={{ padding: '40px 25px', textAlign: 'center', color: '#7f8c8d' }}>
-              <p>🚧 Under Construction</p>
-              <p style={{ marginTop: '10px', fontSize: '14px' }}>The {getCurrentPageTitle()} section will be available soon.</p>
+            <div style={{ padding: '25px' }}>
+              <p>Hello, {keycloak.tokenParsed?.given_name || 'Guest'}!</p>
+              <p>This is your central hub for managing tenants, groups, roles, and users within the system. Use the navigation on the left to explore different functionalities.</p>
             </div>
           </div>
         );
@@ -1199,641 +1642,407 @@ const Dashboard = ({ keycloak = mockKeycloak }) => {
   return (
     <div className="dashboard-container">
       <style>{`
-        /* Existing CSS styles */
-        * {
+        /* General Styles */
+        body {
           margin: 0;
-          padding: 0;
-          box-sizing: border-box;
+          font-family: 'Inter', sans-serif;
+          background-color: #f4f7f6;
+          color: #333;
         }
-
         .dashboard-container {
           display: flex;
           min-height: 100vh;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-          background-color: #f5f6fa;
-          color: #333;
+          background-color: #f0f2f5;
         }
-
+        /* Sidebar Styles */
         .sidebar {
-          width: 280px;
-          background-color: #2c3e50;
-          color: white;
-          box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-        }
-
-        .sidebar-header {
-          padding: 20px;
-          border-bottom: 1px solid #34495e;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .logo {
-          width: 32px;
-          height: 32px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: bold;
-          font-size: 16px;
-        }
-
-        .sidebar-title {
-          font-size: 18px;
-          font-weight: 600;
-        }
-
-        .sidebar-nav {
+          width: 250px;
+          background-color: #fff;
+          box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
           padding: 20px 0;
+          display: flex;
+          flex-direction: column;
+          border-right: 1px solid #e0e0e0;
         }
-
-        .nav-item {
+        .sidebar-header {
+          padding: 0 20px 20px;
+          border-bottom: 1px solid #eee;
+          margin-bottom: 20px;
+        }
+        .sidebar-header h1 {
+          font-size: 24px;
+          color: #2c3e50;
+          margin: 0;
           display: flex;
           align-items: center;
-          padding: 12px 20px;
-          color: #bdc3c7;
+        }
+        .sidebar-header h1 img {
+          height: 30px;
+          margin-right: 10px;
+        }
+        .nav-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+        }
+        .nav-item button {
+          display: flex;
+          align-items: center;
+          width: 100%;
+          padding: 15px 20px;
+          color: #555;
+          text-align: left;
+          border: none;
+          background: none;
+          font-size: 16px;
           cursor: pointer;
-          transition: all 0.3s ease;
-          border-left: 3px solid transparent;
+          transition: background-color 0.3s, color 0.3s;
         }
-
-        .nav-item:hover {
-          background-color: #34495e;
-          color: white;
+        .nav-item button .icon {
+          margin-right: 10px;
+          font-size: 20px;
         }
-
-        .nav-item.active {
-          background-color: #34495e;
-          color: white;
-          border-left-color: #667eea;
+        .nav-item button:hover {
+          background-color: #f0f2f5;
+          color: #667eea;
         }
-
-        .nav-icon {
-          width: 20px;
-          height: 20px;
-          margin-right: 12px;
-          opacity: 0.8;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+        .nav-item button.active {
+          background-color: #e9f0ff;
+          color: #667eea;
+          border-right: 4px solid #667eea;
+          font-weight: bold;
         }
-
+        /* Main Content Styles */
         .main-content {
-          flex: 1;
+          flex-grow: 1;
+          padding: 20px;
+          overflow-y: auto;
         }
-
-        .top-bar {
-          background: white;
-          padding: 20px 30px;
-          border-bottom: 1px solid #e1e8ed;
+        .welcome-header {
+          background-color: #fff;
+          padding: 25px;
+          border-radius: 8px;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+          margin-bottom: 20px;
+        }
+        .welcome-header h2 {
+          margin-top: 0;
+          color: #2c3e50;
+          font-size: 28px;
+        }
+        .welcome-header p {
+          color: #666;
+          line-height: 1.6;
+        }
+        /* Content Card Styles */
+        .content-card {
+          background-color: #fff;
+          padding: 25px;
+          border-radius: 8px;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+          margin-bottom: 20px;
+        }
+        .card-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          margin-bottom: 20px;
+          flex-wrap: wrap;
         }
-
-        .page-title {
-          font-size: 28px;
-          font-weight: 600;
+        .card-header .card-title {
+          font-size: 24px;
           color: #2c3e50;
+          margin: 0;
         }
-
-        .add-tenant-btn { /* Renamed from add-tenant-btn to a more generic add-item-btn if used for all */
-          background: #667eea;
+        .card-header .card-subtitle {
+          color: #777;
+          margin: 5px 0 0;
+          font-size: 15px;
+        }
+        /* Buttons */
+        .btn-primary {
+          background-color: #667eea;
           color: white;
-          border: none;
           padding: 10px 20px;
-          border-radius: 6px;
-          font-weight: 500;
+          border: none;
+          border-radius: 5px;
           cursor: pointer;
+          font-size: 16px;
           transition: background-color 0.3s ease;
-          display: flex;
-          align-items: center;
-          gap: 8px;
         }
-
-        .add-tenant-btn:hover {
-          background: #5a6fd8;
+        .btn-primary:hover {
+          background-color: #0056b3;
         }
-
-        .content-area {
-          padding: 30px;
+        .btn-secondary {
+          background-color: #6c757d;
+          color: white;
+          padding: 10px 20px;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+          font-size: 16px;
+          transition: background-color 0.3s ease;
+          margin-right: 10px;
         }
-
-        .content-card {
-          background: white;
-          border-radius: 8px;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-          overflow: hidden;
+        .btn-secondary:hover {
+          background-color: #5a6268;
         }
-
-        .card-header {
-          padding: 20px 25px;
-          border-bottom: 1px solid #e1e8ed;
-        }
-
-        .card-title {
-          font-size: 20px;
-          font-weight: 600;
-          color: #2c3e50;
-          margin-bottom: 5px;
-        }
-
-        .card-subtitle {
-          color: #7f8c8d;
-          font-size: 14px;
-        }
-
-        .table-container {
+        /* Table Styles */
+        .table-responsive {
           overflow-x: auto;
         }
-
         .data-table {
           width: 100%;
           border-collapse: collapse;
+          margin-top: 20px;
+          font-size: 15px;
         }
-
+        .data-table th, .data-table td {
+          border: 1px solid #eee;
+          padding: 12px 15px;
+          text-align: left;
+        }
         .data-table th {
           background-color: #f8f9fa;
-          padding: 15px 25px;
-          text-align: left;
-          font-weight: 500;
-          color: #5a6c7d;
-          font-size: 14px;
-          border-bottom: 1px solid #e1e8ed;
+          font-weight: bold;
+          color: #555;
+          text-transform: uppercase;
+          font-size: 13px;
         }
-
-        .data-table td {
-          padding: 18px 25px;
-          border-bottom: 1px solid #f1f3f4;
-          color: #2c3e50;
+        .data-table tbody tr:nth-child(even) {
+          background-color: #fdfdfd;
         }
-
-        .data-table tr:hover {
-          background-color: #f1f3f4;
+        .data-table tbody tr:hover {
+          background-color: #f0f8ff;
         }
-
-        .tenant-name {
-          font-weight: 500;
-          color: #2c3e50;
-        }
-
-        .created-date {
-          color: #5a6c7d;
-        }
-
-        .actions-btn {
-          background: none;
-          border: none;
-          color: #7f8c8d;
-          font-size: 18px;
-          cursor: pointer;
-          padding: 5px;
-          border-radius: 4px;
-          transition: all 0.3s ease;
-        }
-
-        .actions-btn:hover {
-          background-color: #f1f3f4;
-          color: #2c3e50;
-        }
-
-        .empty-state {
+        .text-center {
           text-align: center;
-          padding: 40px 20px;
-          color: #7f8c8d;
         }
-
+        /* Dialog Overlay */
         .dialog-overlay {
           position: fixed;
           top: 0;
           left: 0;
           right: 0;
           bottom: 0;
-          background-color: rgba(0, 0, 0, 0.5);
+          background-color: rgba(0, 0, 0, 0.6);
           display: flex;
-          align-items: center;
           justify-content: center;
-          z-index: 1000;
-          animation: fadeIn 0.2s ease-out;
-        }
-
-        .dialog-content {
-          background: white;
-          border-radius: 8px;
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-          width: 100%;
-          max-width: 480px; /* Default max-width for single-input dialogs */
-          margin: 20px;
-          animation: slideIn 0.3s ease-out;
-        }
-
-        .dialog-header {
-          display: flex;
           align-items: center;
+          z-index: 1000;
+        }
+        /* Dialog Content */
+        .dialog-content {
+          background-color: #fff;
+          padding: 0; /* Remove padding here, add to sections */
+          border-radius: 8px;
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+          width: 90%;
+          max-width: 450px;
+          animation: fadeIn 0.3s ease-out;
+          display: flex;
+          flex-direction: column;
+          max-height: 90vh; /* Ensure dialog doesn't exceed viewport height */
+          overflow-y: auto; /* Enable scrolling for content if needed */
+        }
+        .dialog-header {
+          padding: 25px 25px 15px;
+          border-bottom: 1px solid #eee;
+          display: flex;
           justify-content: space-between;
-          padding: 20px 25px;
-          border-bottom: 1px solid #e1e8ed;
+          align-items: center;
         }
-
         .dialog-title {
-          font-size: 20px;
-          font-weight: 600;
-          color: #2c3e50;
           margin: 0;
+          font-size: 22px;
+          color: #2c3e50;
         }
-
         .dialog-close {
           background: none;
           border: none;
-          font-size: 18px;
-          color: #7f8c8d;
+          font-size: 24px;
           cursor: pointer;
-          padding: 5px;
-          border-radius: 4px;
-          transition: all 0.2s ease;
+          color: #888;
+          transition: color 0.2s;
         }
-
         .dialog-close:hover {
-          background-color: #f1f3f4;
-          color: #2c3e50;
+          color: #333;
         }
-
         .dialog-body {
           padding: 25px;
+          flex-grow: 1; /* Allow body to take available space */
+          overflow-y: auto; /* Make body scrollable if content overflows */
         }
-
         .form-group {
-          margin-bottom: 20px;
+          margin-bottom: 18px;
         }
-
         .form-label {
           display: block;
-          font-weight: 500;
-          color: #2c3e50;
           margin-bottom: 8px;
+          font-weight: bold;
+          color: #444;
           font-size: 14px;
         }
-
         .form-input {
-          width: 100%;
-          padding: 12px 15px;
-          border: 1px solid #e1e8ed;
-          border-radius: 6px;
+          width: calc(100% - 20px); /* Adjust for padding */
+          padding: 12px 10px;
+          border: 1px solid #ccc;
+          border-radius: 5px;
           font-size: 16px;
-          transition: border-color 0.2s ease;
-          background-color: #fff;
+          box-sizing: border-box; /* Include padding in width */
+          transition: border-color 0.2s;
         }
-
         .form-input:focus {
-          outline: none;
           border-color: #667eea;
-          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+          outline: none;
         }
-
         .form-input.error {
-            border-color: #e74c3c;
+          border-color: #dc3545;
         }
-
         .error-message {
-          color: #e74c3c;
-          font-size: 14px;
-          margin-top: 6px;
-          margin-bottom: 0;
+          color: #dc3545;
+          font-size: 13px;
+          margin-top: 5px;
         }
-
         .dialog-actions {
+          padding: 15px 25px 25px;
+          border-top: 1px solid #eee;
           display: flex;
-          gap: 12px;
           justify-content: flex-end;
+          gap: 10px;
+          margin-top: 20px;
         }
-
-        .btn-primary {
-          background: #667eea;
-          color: white;
-          border: none;
-          padding: 10px 20px;
-          border-radius: 6px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background-color 0.2s ease;
-          font-size: 14px;
+        .dialog-actions button {
+          min-width: 90px;
         }
-
-        .btn-primary:hover {
-          background: #5a6fd8;
-        }
-
-        .btn-secondary {
-          background: #f8f9fa;
-          color: #5a6c7d;
-          border: 1px solid #e1e8ed;
-          padding: 10px 20px;
-          border-radius: 6px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          font-size: 14px;
-        }
-
-        .btn-secondary:hover {
-          background: #e9ecef;
-          border-color: #d1d9e6;
-        }
-
-        /* Styles for multi-field forms like UserRegistrationDialog and GroupDialog */
+        /* Form Grid for multi-field dialogs */
         .form-grid {
-            display: grid;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+        }
+        @media (max-width: 600px) {
+          .form-grid {
             grid-template-columns: 1fr;
-            gap: 20px;
+          }
         }
-
+        /* Action Dropdown */
+        .actions-dropdown {
+          position: relative;
+          display: inline-block;
+        }
+        .actions-btn {
+          background: none;
+          border: none;
+          font-size: 24px;
+          cursor: pointer;
+          color: #888;
+          padding: 0 8px;
+        }
+        .actions-btn:hover {
+          color: #333;
+        }
+        .dropdown-menu {
+          position: absolute;
+          right: 0;
+          background-color: #fff;
+          min-width: 120px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+          border-radius: 4px;
+          z-index: 100;
+          overflow: hidden;
+        }
+        .dropdown-item {
+          display: block;
+          width: 100%;
+          padding: 10px 15px;
+          border: none;
+          background: none;
+          text-align: left;
+          cursor: pointer;
+          font-size: 14px;
+          color: #333;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .dropdown-item:hover {
+          background-color: #f5f5f5;
+          color: #667eea;
+        }
+        .dropdown-item.delete-item {
+          color: #dc3545;
+        }
+        .dropdown-item.delete-item:hover {
+          background-color: #fdeded;
+        }
+        /* Animations */
         @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-
-        @keyframes slideIn {
-          from { 
-            opacity: 0;
-            transform: translateY(-20px) scale(0.95);
-          }
-          to { 
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-
-        @media (min-width: 600px) {
-            .form-grid {
-                grid-template-columns: 1fr 1fr; /* Two columns on larger screens for user registration */
-            }
-        }
-
-        /* Adjusted for smaller dialogs if needed, though 1fr is generally good for small forms */
-        .dialog-content[style*="max-width: 500px"] .form-grid {
-             grid-template-columns: 1fr; /* One column for smaller dialogs like GroupDialog if it has only 2 fields*/
-        }
-        @media (min-width: 480px) {
-          .dialog-content[style*="max-width: 500px"] .form-grid {
-              grid-template-columns: 1fr 1fr; /* Two columns for smaller dialogs if they fit */
-          }
-        }
-
-
-        @media (max-width: 768px) {
-          .sidebar {
-            width: 250px;
-          }
-          
-          .content-area {
-            padding: 20px;
-          }
-          
-          .top-bar {
-            padding: 15px 20px;
-          }
-          
-          .page-title {
-            font-size: 24px;
-          }
-
-          .dialog-content {
-            margin: 10px;
-          }
-
-          .dialog-header, .dialog-body {
-            padding: 20px;
-          }
-        }
-          /* Actions cell styling */
-.actions-cell {
-  position: relative;
-  text-align: center;
-  padding: 8px 12px;
-  vertical-align: middle;
-  width: 80px;
-  min-width: 80px;
-}
-
-/* Actions dropdown container */
-.actions-dropdown {
-  position: relative;
-  display: inline-block;
-}
-
-/* Actions button (trigger) */
-.actions-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px 10px;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  color: #6b7280;
-  min-width: 32px;
-  min-height: 32px;
-}
-
-.actions-btn:hover {
-  background-color: #f3f4f6;
-  color: #374151;
-}
-
-.actions-btn:focus {
-  outline: none;
-  background-color: #e5e7eb;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
-}
-
-.actions-btn:active {
-  background-color: #d1d5db;
-  transform: scale(0.95);
-}
-
-/* Dropdown menu */
-.dropdown-menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  z-index: 1000;
-  min-width: 140px;
-  overflow: hidden;
-  animation: dropdownFadeIn 0.15s ease-out;
-}
-
-@keyframes dropdownFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* Dropdown items */
-.dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 10px 12px;
-  text-align: left;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 14px;
-  color: #374151;
-  transition: background-color 0.15s ease;
-  text-decoration: none;
-  border-bottom: 1px solid transparent;
-}
-
-.dropdown-item:hover {
-  background-color: #f9fafb;
-}
-
-.dropdown-item:focus {
-  outline: none;
-  background-color: #f3f4f6;
-}
-
-.dropdown-item:active {
-  background-color: #e5e7eb;
-}
-
-/* Edit item styling */
-.edit-item {
-  color: #3b82f6;
-}
-
-.edit-item:hover {
-  background-color: #eff6ff;
-  color: #2563eb;
-}
-
-/* Delete item styling */
-.delete-item {
-  color: #ef4444;
-}
-
-.delete-item:hover {
-  background-color: #fef2f2;
-  color: #dc2626;
-}
-
-/* Add separator between items */
-.dropdown-item:not(:last-child) {
-  border-bottom: 1px solid #f3f4f6;
-}
-
-/* Separator */
-.action-dropdown-separator {
-  height: 1px;
-  background-color: #e5e7eb;
-  margin: 4px 0;
-}
-
-/* Table row hover effect */
-tr:hover .actions-cell .action-dropdown-trigger {
-  background-color: #f9fafb;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .actions-cell {
-    width: 60px;
-    min-width: 60px;
-    padding: 4px 8px;
-  }
-  
-  .action-dropdown-menu {
-    right: -10px;
-  }
-}
       `}</style>
-
-      {/* Sidebar */}
       <div className="sidebar">
         <div className="sidebar-header">
-          <div className="logo">📦</div>
-          <h1 className="sidebar-title">RuleMaster AI</h1>
+          <h1>
+            <img src="https://www.google.com/s2/favicons?domain=react.dev" alt="Logo" />
+            Admin Panel
+          </h1>
         </div>
-        <nav className="sidebar-nav">
+        <ul className="nav-list">
           {navItems.map((item) => (
-            <div
-              key={item.id}
-              className={`nav-item ${activeNav === item.id ? 'active' : ''}`}
-              onClick={() => handleNavClick(item.id)}
-            >
-              <div className="nav-icon">{item.icon}</div>
-              {item.label}
-            </div>
-          ))}
-        </nav>
-      </div>
-
-      {/* Main Content */}
-      <div className="main-content">
-        <div className="top-bar">
-          <h1 className="page-title">{getCurrentPageTitle()}</h1>
-          {/* Render "Add" button based on active navigation */}
-          {currentView === 'dashboard' &&
-            (activeNav === 'tenants' || activeNav === 'group' || activeNav === 'roles' || activeNav === 'users') && (
-              <button className="add-tenant-btn" onClick={handleAddItem}>
-                <span>➕</span>
-                {activeNav === 'users' ? 'Add User' : `Add ${navItems.find((item) => item.id === activeNav)?.label.slice(0, -1)}`}
+            <li className="nav-item" key={item.id}>
+              <button
+                className={activeNav === item.id ? 'active' : ''}
+                onClick={() => setActiveNav(item.id)}
+              >
+                <span className="icon">{item.icon}</span>
+                {item.label}
               </button>
-            )}
-        </div>
-
-        <div className="content-area">{renderContent()}</div>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="main-content">
+        {/* <div className="welcome-header">
+          <h2>Hello, {keycloak.tokenParsed?.given_name || 'Admin'}!</h2>
+          <p>Welcome to your administration dashboard. Here you can manage various aspects of your system.</p>
+        </div> */}
+        {renderContent()}
       </div>
 
-      {/* Generic Input Dialogs for single-field entities */}
       <InputDialog
         isOpen={isTenantDialogOpen}
         onClose={() => setIsTenantDialogOpen(false)}
-        onSave={handleSaveTenant}
-        title="Create New Tenant"
-        label="Tenant Name"
-        placeholder="Enter tenant name"
+        onSave={handleCreateTenant}
+        title="Create New Organisation"
+        label="Organisation Name"
+        placeholder="e.g., My Organization Inc."
       />
 
-      {/* Dedicated User Registration Dialog */}
       <UserRegistrationDialog
         isOpen={isUserRegistrationDialogOpen}
         onClose={() => setIsUserRegistrationDialogOpen(false)}
         onRegisterUser={handleRegisterUser}
       />
 
-      {/* Dedicated Group Dialog with Tenant Dropdown */}
+      <UserEditDialog
+        isOpen={isUserEditDialogOpen}
+        onClose={() => setIsUserEditDialogOpen(false)}
+        onUpdateUser={handleUpdateUser}
+        userToEdit={userToEdit}
+      />
+
       <GroupDialog
         isOpen={isGroupDialogOpen}
         onClose={() => setIsGroupDialogOpen(false)}
-        onSaveGroup={handleSaveGroup}
-        tenants={tenants} // Pass the list of tenants to the dialog
+        onSaveGroup={handleCreateGroup}
       />
 
-      {/* Dedicated Role Dialog with Group and Tenant Dropdowns */}
       <RoleDialog
         isOpen={isRoleDialogOpen}
         onClose={() => setIsRoleDialogOpen(false)}
-        onSaveRole={handleSaveRole}
-        groups={groups} // Pass the list of groups
-        tenants={tenants} // Pass the list of tenants
+        onSaveRole={handleCreateRole}
       />
     </div>
   );
